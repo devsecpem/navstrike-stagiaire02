@@ -4,6 +4,10 @@
  *
  * Generates mission reports and tactical exports.
  */
+
+use Dompdf\Dompdf;
+use Dompdf\Options;
+
 class ReportHelper {
     // Formats autorisés
     private const ALLOWED_FORMATS = ['pdf', 'html'];
@@ -30,16 +34,25 @@ class ReportHelper {
             throw new InvalidArgumentException("Fichier de rapport introuvable.");
         }
 
-        $outputFile = "/tmp/mission_report_" . $missionId . "." . $format;
+        $htmlContent = file_get_contents($inputFile);
+        $outputFile  = "/tmp/mission_report_" . $missionId . "." . $format;
 
-        // Echappement de tous les arguments
-        $command = sprintf(
-            "wkhtmltopdf %s %s",
-            escapeshellarg($inputFile),
-            escapeshellarg($outputFile)
-        );
+        if ($format === 'pdf') {
+            // Génération PDF via Dompdf - sans appel système
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', false);
 
-        shell_exec($command);
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($htmlContent);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            file_put_contents($outputFile, $dompdf->output());
+        } else {
+            // Export HTML direct
+            file_put_contents($outputFile, $htmlContent);
+        }
 
         echo "<p>Rapport exporte : " . htmlspecialchars($outputFile, ENT_QUOTES, 'UTF-8') . "</p>";
     }
@@ -50,7 +63,6 @@ class ReportHelper {
     public function generateSummary($missionId) {
         global $conn;
 
-        // Requête préparée - même si intval() était déjà une protection partielle
         $stmt = mysqli_prepare($conn, "SELECT * FROM missions WHERE id = ?");
         mysqli_stmt_bind_param($stmt, "i", $missionId);
         mysqli_stmt_execute($stmt);

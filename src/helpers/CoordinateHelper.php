@@ -6,27 +6,32 @@
  */
 class CoordinateHelper {
     /**
-     * Convert DMS coordinates to decimal using system tool
+     * Convert DMS coordinates to decimal natively in PHP
+     * Format attendu : 48°51'24"N 2°21'03"E
      */
     public function convertDMS($coords) {
         // Validation stricte du format DMS attendu
-        // Format attendu : 48°51'24"N 2°21'03"E
         if (!preg_match('/^\d{1,3}°\d{1,2}\'\d{1,2}"[NS]\s\d{1,3}°\d{1,2}\'\d{1,2}"[EW]$/', $coords)) {
             throw new InvalidArgumentException("Format de coordonnées invalide.");
         }
 
-        // Echappement de l'argument avant passage en commande
-        $escaped = escapeshellarg($coords);
-        $result = shell_exec("python3 /opt/navtools/dms2dec.py " . $escaped);
+        // Extraction des composantes lat/lng
+        preg_match('/^(\d{1,3})°(\d{1,2})\'(\d{1,2})"([NS])\s(\d{1,3})°(\d{1,2})\'(\d{1,2})"([EW])$/', $coords, $matches);
 
-        return trim($result);
+        $lat = (float)$matches[1] + ((float)$matches[2] / 60) + ((float)$matches[3] / 3600);
+        $lng = (float)$matches[5] + ((float)$matches[6] / 60) + ((float)$matches[7] / 3600);
+
+        // Appliquer le signe selon l'hémisphère
+        if ($matches[4] === 'S') $lat = -$lat;
+        if ($matches[8] === 'W') $lng = -$lng;
+
+        return ['latitude' => round($lat, 6), 'longitude' => round($lng, 6)];
     }
 
     /**
      * Calculate distance between two points
      */
     public function calculateDistance($lat1, $lng1, $lat2, $lng2) {
-        // Validation des coordonnées numériques
         foreach ([$lat1, $lng1, $lat2, $lng2] as $coord) {
             if (!is_numeric($coord)) {
                 throw new InvalidArgumentException("Les coordonnées doivent être numériques.");
@@ -59,7 +64,6 @@ class CoordinateHelper {
             'SCALP' => 250
         ];
 
-        // Validation du type de missile
         if (!array_key_exists($missileType, $speeds)) {
             throw new InvalidArgumentException("Type de missile invalide.");
         }

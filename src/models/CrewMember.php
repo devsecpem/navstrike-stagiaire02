@@ -30,7 +30,6 @@ class CrewMember {
         global $conn;
         $role = $_GET['role'] ?? '';
 
-        // Validation par liste blanche
         if (!in_array($role, self::ALLOWED_ROLES, true)) {
             throw new InvalidArgumentException("Rôle invalide.");
         }
@@ -50,13 +49,15 @@ class CrewMember {
         global $conn;
         $sortBy = $_GET['sort'] ?? 'rank';
 
-        // Validation par liste blanche - impossible d'utiliser ? pour ORDER BY
-        if (!in_array($sortBy, self::ALLOWED_SORT_COLUMNS, true)) {
-            $sortBy = 'rank'; // Valeur par défaut sécurisée
-        }
+        // Mapping vers des constantes littérales - aucune variable dans la requête
+        $query = match($sortBy) {
+            'name'    => "SELECT * FROM crew ORDER BY name ASC",
+            'role'    => "SELECT * FROM crew ORDER BY role ASC",
+            'station' => "SELECT * FROM crew ORDER BY station ASC",
+            default   => "SELECT * FROM crew ORDER BY rank ASC",
+        };
 
-        // Injection directe sécurisée car validée par liste blanche
-        $stmt = mysqli_prepare($conn, "SELECT * FROM crew ORDER BY " . $sortBy . " ASC");
+        $stmt = mysqli_prepare($conn, $query);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         mysqli_stmt_close($stmt);
