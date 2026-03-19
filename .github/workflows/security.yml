@@ -1,0 +1,54 @@
+name: Security Pipeline
+on:
+    push:
+        branches: [main]
+jobs:
+    sca:
+        name: Composer Audit - SCA
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.3'
+                  tools: composer:v2
+            - name: Install dependencies
+              run: composer install --no-interaction --prefer-dist
+            - name: Run Composer Audit
+              run: composer audit --locked
+
+    sast:
+        name: Semgrep - SAST
+        runs-on: ubuntu-latest
+        container:
+            image: semgrep/semgrep
+        steps:
+            - uses: actions/checkout@v4
+            - name: Run Semgrep
+              run: semgrep scan --config auto --error .
+
+    secrets:
+        name: Gitleaks - Secrets
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Run Gitleaks
+              run: |
+                  docker run --rm -v ${{ github.workspace }}:/repo \
+                  zricethezav/gitleaks:v8.30.0 \
+                  detect --source="/repo" --no-git --verbose --exit-code=1
+
+    docker-config:
+        name: Trivy - Docker/Config
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Run Trivy
+              uses: aquasecurity/trivy-action@0.35.0
+              with:
+                  scan-type: fs
+                  scan-ref: '.'
+                  scanners: misconfig
+                  severity: MEDIUM,HIGH,CRITICAL
+                  exit-code: '1'
