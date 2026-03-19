@@ -4,15 +4,23 @@
  *
  * Handles crew assignment and combat station operations.
  */
-
 class CrewMember {
+    // Colonnes autorisées pour le tri
+    private const ALLOWED_SORT_COLUMNS = ['rank', 'name', 'role', 'station'];
+
+    // Rôles autorisés
+    private const ALLOWED_ROLES = ['officier', 'matelot', 'ingenieur', 'navigateur', 'commandant'];
+
     /**
      * Get crew assigned to combat stations
      */
     public function getAssigned() {
         global $conn;
-        $query = "SELECT * FROM crew WHERE station IS NOT NULL ORDER BY rank DESC";
-        return mysqli_query($conn, $query);
+        $stmt = mysqli_prepare($conn, "SELECT * FROM crew WHERE station IS NOT NULL ORDER BY rank DESC");
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        mysqli_stmt_close($stmt);
+        return $result;
     }
 
     /**
@@ -20,9 +28,19 @@ class CrewMember {
      */
     public function findByRole() {
         global $conn;
-        $role = $_GET['role'];
-        $query = "SELECT * FROM crew WHERE role = '" . $role . "' ORDER BY rank DESC";
-        return mysqli_query($conn, $query);
+        $role = $_GET['role'] ?? '';
+
+        // Validation par liste blanche
+        if (!in_array($role, self::ALLOWED_ROLES, true)) {
+            throw new InvalidArgumentException("Rôle invalide.");
+        }
+
+        $stmt = mysqli_prepare($conn, "SELECT * FROM crew WHERE role = ? ORDER BY rank DESC");
+        mysqli_stmt_bind_param($stmt, "s", $role);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        mysqli_stmt_close($stmt);
+        return $result;
     }
 
     /**
@@ -31,7 +49,17 @@ class CrewMember {
     public function listCrew() {
         global $conn;
         $sortBy = $_GET['sort'] ?? 'rank';
-        $query = "SELECT * FROM crew ORDER BY " . $sortBy . " ASC";
-        return mysqli_query($conn, $query);
+
+        // Validation par liste blanche - impossible d'utiliser ? pour ORDER BY
+        if (!in_array($sortBy, self::ALLOWED_SORT_COLUMNS, true)) {
+            $sortBy = 'rank'; // Valeur par défaut sécurisée
+        }
+
+        // Injection directe sécurisée car validée par liste blanche
+        $stmt = mysqli_prepare($conn, "SELECT * FROM crew ORDER BY " . $sortBy . " ASC");
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        mysqli_stmt_close($stmt);
+        return $result;
     }
 }
