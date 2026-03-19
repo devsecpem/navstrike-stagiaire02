@@ -1,0 +1,22 @@
+{
+    "name": "devsecpem/navstrike",
+    "description": "NavStrike - Systeme de ciblage missiles FREMM",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "guzzlehttp/guzzle": "7.4.4",
+        "guzzlehttp/psr7": "2.4.4",
+        "phpmailer/phpmailer": "6.1.5",
+        "phpseclib/phpseclib": "3.0.18"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "audit": {
+            "block-insecure": false
+        }
+    }
+}
