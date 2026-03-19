@@ -4,10 +4,10 @@
     "type": "project",
     "require": {
         "php": ">=8.1",
-        "guzzlehttp/guzzle": "7.4.4",
-        "guzzlehttp/psr7": "2.4.4",
-        "phpmailer/phpmailer": "6.1.5",
-        "phpseclib/phpseclib": "3.0.18"
+        "guzzlehttp/guzzle": "^7.4.5",
+        "guzzlehttp/psr7": "^2.4.5",
+        "phpmailer/phpmailer": "^6.5.0",
+        "phpseclib/phpseclib": "^3.0.36"
     },
     "autoload": {
         "psr-4": {
@@ -16,7 +16,7 @@
     },
     "config": {
         "audit": {
-            "block-insecure": false
+            "block-insecure": true
         }
     }
 }
